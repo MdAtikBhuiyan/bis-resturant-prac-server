@@ -10,6 +10,16 @@ require('dotenv').config()
 // stripe payment method
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 
+// for email sending
+const formData = require('form-data');
+const Mailgun = require('mailgun.js');
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+    username: 'api',
+    key: process.env.MAIL_GUN_API_KEY,
+});
+
+
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -281,6 +291,26 @@ async function run() {
                 }
             }
             const deleteResult = await cartCollection.deleteMany(query);
+
+
+            // send user email payment confirmation
+            mg.messages
+                .create(process.env.MAIL_SENDING_DOMAIN, {
+                    from: "Mailgun Sandbox <postmaster@sandbox6e1b2194a132481a9bfcd20909c28d18.mailgun.org>",
+                    to: ["bhuiyanatikk@gmail.com"],
+                    subject: "Thank you for order",
+                    text: "Bistro boss order",
+                    html: `
+                    <div>
+                    <h2> Thank you for your order </h2>
+                    <h4> Your transaction ID:  <strong> ${paymentInfo.transactionId}  </strong> </h4>
+                    </div>
+                    `
+                })
+                .then(msg => console.log(msg)) // logs response data
+                .catch(err => console.log(err)); // logs any error`;
+
+
 
             res.send({ paymentResult, deleteResult })
 
